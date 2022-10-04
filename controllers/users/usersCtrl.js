@@ -1,0 +1,243 @@
+const expressAsyncHandler = require("express-async-handler");
+const generateToken = require("../../config/token/generateToken");
+const User = require("../../models/user/User");
+const validateMongodbId = require("../../utils/validateMongodb");
+
+//=========================Register user ===========================================//
+const userRegisterCtrl = expressAsyncHandler(async (req, res) => {
+  // console.log(req.body);
+
+  //User Exists
+  const userExists = await User.findOne({ email: req?.body?.email });
+  if (userExists) throw new Error("User already exists");
+  try {
+    //Register user
+    const user = await User.create({
+      firstName: req?.body?.firstName,
+      lastName: req?.body?.lastName,
+      email: req?.body?.email,
+      password: req?.body?.password,
+    });
+    res.json(user);
+  } catch (error) {
+    res.json(error);
+  }
+});
+
+//=========================Login User ===========================================//
+const loginUserCtl = expressAsyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  //check if user exists
+  const userFound = await User.findOne({ email });
+  //check password is match
+  if (userFound && (await userFound.isPasswordMatched(password))) {
+    res.json({
+      _id: userFound?._id,
+      firstName: userFound?.firstName,
+      lastName: userFound.lastName,
+      email: userFound?.email,
+      profilePhoto: userFound?.profilePhoto,
+      isAdmin: userFound?.isAdmin,
+      token: generateToken(userFound?._id),
+    });
+  } else {
+    res.status(401);
+    throw new Error("Invalid Login Credentials");
+  }
+});
+
+//=========================Get all users ===========================================//
+const fetchUsersCtrl = expressAsyncHandler(async (req, res) => {
+  console.log(req.headers);
+  try {
+    const users = await User.find({});
+    res.json(users);
+  } catch (error) {
+    res.json(error);
+  }
+});
+
+//=========================Delete User ===========================================//
+const deleteUsersCtrl = expressAsyncHandler(async (req, res) => {
+  const { id } = req.params;
+  //check if user id is valid
+  validateMongodbId(id);
+  try {
+    const deleteUser = await User.findByIdAndDelete(id);
+    res.json(deleteUser);
+  } catch (error) {
+    res.json(error);
+  }
+});
+
+//=========================User Details ===========================================//
+const fetchUserDetailsCtrl = expressAsyncHandler(async (req, res) => {
+  const { id } = req.params;
+  validateMongodbId(id);
+  try {
+    const user = await User.findById(id);
+    res.json(user);
+  } catch (error) {
+    res.json(error);
+  }
+});
+
+//=========================User Profile ============================================//
+const userProfileCtrl = expressAsyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  validateMongodbId(id);
+  try {
+    const myProfile = await User.findById(id);
+    res.json(myProfile);
+  } catch (error) {
+    res.json(error);
+  }
+});
+
+//=========================Update Profile ===========================================//
+
+const updateUserCtrl = expressAsyncHandler(async (req, res, next) => {
+  const { _id } = req?.user;
+  validateMongodbId(_id);
+  const user = await User.findByIdAndUpdate(
+    _id,
+    {
+      firstName: req?.body?.firstName,
+      lastName: req?.body?.lastName,
+      email: req?.body?.email,
+      bio: req?.body?.bio,
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+  res.json(user);
+});
+
+//=========================Update password ===========================================//
+
+const updateUserPasswordCtrl = expressAsyncHandler(async (req, res) => {
+  //destructure the login user
+  const { _id } = req.user;
+  const { password } = req.body;
+  validateMongodbId(_id);
+  //Find the user by id
+  const user = await User.findById(_id);
+  if (password) {
+    user.password = password;
+    const updatedUser = await user.save();
+    res.json(updatedUser);
+  }
+  res.json(user);
+});
+
+//=========================Follow users ===========================================//
+
+const followingUserCtrl = expressAsyncHandler(async (req, res) => {
+  //find the user you want to follow and update it's followers field
+  const { followId } = req.body;
+  const loginUserId = req.user.id;
+
+  const targetUser = await User.findById(followId);
+
+  //find the useer and check if the login id exist
+  const alreadyFollowing = targetUser?.followers?.find(
+    (user) => user?.toString() === loginUserId.toString()
+  );
+  if (alreadyFollowing) throw new Error("you have already followed this user");
+  await User.findByIdAndUpdate(
+    followId,
+    {
+      $push: { followers: loginUserId },
+    },
+    { new: true }
+  );
+  //  //Update the login user following field
+  await User.findByIdAndUpdate(
+    followId,
+    {
+      $push: { following: followId },
+      isFollowing: true,
+    },
+    { new: true }
+  );
+  res.json("Successfully follow the user");
+});
+
+//=========================Unfollow users ===========================================//
+
+const unfollowUserCtrl = expressAsyncHandler(async (req, res) => {
+  const { unFollowId } = req.body;
+  const loginUserId = req.user.id;
+
+  await User.findByIdAndUpdate(
+    unFollowId,
+    {
+      $pull: { followers: loginUserId },
+      isFollowing: false,
+    },
+    { new: true }
+  );
+  await User.findByIdAndUpdate(
+    loginUserId,
+    {
+      $pull: { following: unFollowId },
+    },
+    { new: true }
+  );
+  res.json("you have successfully unfollowed this user");
+});
+
+//=========================Block users ===========================================//
+
+const blockUserCtrl = expressAsyncHandler(async (req, res) => {
+  const { id } = req.params;
+  validateMongodbId(id);
+  const user = await User.findByIdAndUpdate(
+    id,
+    {
+      isBlocked: true,
+    },
+    {
+      new: true,
+    }
+  );
+  res.json(user);
+});
+
+//=========================Unblock users ===========================================//
+
+const unBlockUserCtrl = expressAsyncHandler(async (req, res) => {
+  const { id } = req.params;
+  validateMongodbId(id);
+  const user = await User.findByIdAndUpdate(
+    id,
+    {
+      isBlocked: false,
+    },
+    { new: true }
+  );
+  res.json(user);
+});
+//=========================Profile photo upload===========================================//
+
+const profilePhotoUploadCtrl =expressAsyncHandler(async (req, res) => {
+  console.log(req.file);
+  res.json("upload");
+});
+module.exports = {
+  userRegisterCtrl,
+  loginUserCtl,
+  fetchUsersCtrl,
+  deleteUsersCtrl,
+  fetchUserDetailsCtrl,
+  userProfileCtrl,
+  updateUserCtrl,
+  updateUserPasswordCtrl,
+  followingUserCtrl,
+  unfollowUserCtrl,
+  blockUserCtrl,
+  unBlockUserCtrl,
+  profilePhotoUploadCtrl
+};

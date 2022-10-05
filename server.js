@@ -1,9 +1,9 @@
 const express = require("express")
-
+const dotenv =require('dotenv').config()
 const { errorHandler,notFound  } = require("./middlewares/error/errorHandler");
 
 const userRoutes =require('./route/users/usersRoute')
-const dotenv =require('dotenv').config()
+
 const dbconfig =require("./config/db/dbConnect")
 const PORT =process.env.PORT || 5000;
 const connectDB =require("./config/db/dbConnect")

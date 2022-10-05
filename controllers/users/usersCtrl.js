@@ -1,6 +1,7 @@
 const expressAsyncHandler = require("express-async-handler");
 const generateToken = require("../../config/token/generateToken");
 const User = require("../../models/user/User");
+const cloudinaryUploadImg = require("../../utils/cloudinary");
 const validateMongodbId = require("../../utils/validateMongodb");
 
 //=========================Register user ===========================================//
@@ -222,9 +223,22 @@ const unBlockUserCtrl = expressAsyncHandler(async (req, res) => {
 });
 //=========================Profile photo upload===========================================//
 
-const profilePhotoUploadCtrl =expressAsyncHandler(async (req, res) => {
-  console.log(req.file);
-  res.json("upload");
+const profilePhotoUploadCtrl = expressAsyncHandler(async (req, res) => {
+  //find loginuser
+  const { _id } = req.user;
+
+  //1. get the oath to img
+  const localPath = `public/images/profile/${req.file.filename}`;
+  //upload to cloudinary
+  const imgUploaded = await cloudinaryUploadImg(localPath);
+  const foundUser = await User.findByIdAndUpdate(
+    _id,
+    {
+      profilePhoto: imgUploaded?.url,
+    },
+    { new: true }
+  );
+  res.json(foundUser);
 });
 module.exports = {
   userRegisterCtrl,
@@ -239,5 +253,5 @@ module.exports = {
   unfollowUserCtrl,
   blockUserCtrl,
   unBlockUserCtrl,
-  profilePhotoUploadCtrl
+  profilePhotoUploadCtrl,
 };

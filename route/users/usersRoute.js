@@ -17,7 +17,7 @@ const {
 } = require("../../controllers/users/usersCtrl");
 const authMiddleware = require("../../middlewares/auth/authMiddleware");
 const {
-  profilePhotoUpload,profilePhotoResize
+  PhotoUpload,profilePhotoResize
 } = require("../../middlewares/upload/profilePhotoUpload");
 
 const userRoutes = express.Router();
@@ -39,7 +39,7 @@ userRoutes.put("/unblock-user/:id", authMiddleware, unBlockUserCtrl);
 userRoutes.put(
   "/profilephoto-upload",
   authMiddleware,
-  profilePhotoUpload.single('image'),
+  PhotoUpload.single('image'),
   profilePhotoResize,
   profilePhotoUploadCtrl
 );

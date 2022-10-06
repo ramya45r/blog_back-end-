@@ -100,6 +100,12 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 ); 
+//Virtual method to populate created post
+userSchema.virtual('posts'),{
+  ref:'Post',
+  foriegnField: 'user',
+  localField:'_id',
+}
 
 //Hash password
 

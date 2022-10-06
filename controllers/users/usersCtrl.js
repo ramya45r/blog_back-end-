@@ -1,4 +1,5 @@
 const expressAsyncHandler = require("express-async-handler");
+const fs = require("fs")
 const generateToken = require("../../config/token/generateToken");
 const User = require("../../models/user/User");
 const cloudinaryUploadImg = require("../../utils/cloudinary");
@@ -88,7 +89,7 @@ const userProfileCtrl = expressAsyncHandler(async (req, res, next) => {
   const { id } = req.params;
   validateMongodbId(id);
   try {
-    const myProfile = await User.findById(id);
+    const myProfile = await User.findById(id).populate('posts')
     res.json(myProfile);
   } catch (error) {
     res.json(error);
@@ -238,7 +239,9 @@ const profilePhotoUploadCtrl = expressAsyncHandler(async (req, res) => {
     },
     { new: true }
   );
-  res.json(foundUser);
+  //remove the saved user
+  fs.unlinkSync(localPath);
+  res.json(imgUploaded);
 });
 module.exports = {
   userRegisterCtrl,

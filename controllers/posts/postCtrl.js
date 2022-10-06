@@ -1,6 +1,6 @@
 const expressAsyncHandler = require("express-async-handler");
 const Filter = require("bad-words");
-const fs= require("fs");
+const fs = require("fs");
 const Post = require("../../models/post/Post");
 const validateMongodbId = require("../../utils/validateMongodb");
 const User = require("../../models/user/User");
@@ -28,7 +28,6 @@ const createPostCtrl = expressAsyncHandler(async (req, res) => {
   const localPath = `public/images/posts/${req.file.filename}`;
   //upload to cloudinary
   const imgUploaded = await cloudinaryUploadImg(localPath);
- 
 
   // console.log(req.file);
   try {
@@ -38,22 +37,19 @@ const createPostCtrl = expressAsyncHandler(async (req, res) => {
     //   user: _id,
     // });
     res.json(imgUploaded);
-    //Remove uploaded img 
-    fs.unlinkSync(localPath)
-
+    //Remove uploaded img
+    fs.unlinkSync(localPath);
   } catch (error) {
     res.json(error);
   }
 });
 
 //--------------Fetch all posts --------------------------------//
-const  fetchPostsCtrl = expressAsyncHandler(async (req, res) => {
-try{
- const posts =await Post.find({})
- res.json(posts);
-}catch(error){
-
-}
+const fetchPostsCtrl = expressAsyncHandler(async (req, res) => {
+  try {
+    const posts = await Post.find({});
+    res.json(posts);
+  } catch (error) {}
 });
 //--------------Fetch a single post --------------------------------//
 const fetchPostCtrl = expressAsyncHandler(async (req, res) => {
@@ -62,14 +58,67 @@ const fetchPostCtrl = expressAsyncHandler(async (req, res) => {
   try {
     const post = await Post.findById(id).populate("user");
     // update no.of Views
-    await Post.findByIdAndUpdate(id,{
-      $inc:{numViews:1},  
-    },{new:true})
+    await Post.findByIdAndUpdate(
+      id,
+      {
+        $inc: { numViews: 1 },
+      },
+      { new: true }
+    );
     res.json(post);
   } catch (error) {
     res.json(error);
   }
 });
 //--------------Update post --------------------------------//
-const updatePost = expressAsyncHandler()
-module.exports = { createPostCtrl,fetchPostsCtrl,fetchPostCtrl };
+const updatePostCtrl = expressAsyncHandler(async (req, res) => {
+  console.log(req.user);
+  const { id } = req.params;
+  validateMongodbId(id);
+  try {
+    const post = await Post.findByIdAndUpdate(
+      id,
+      {
+        ...req.body,
+        user:req.user?._id,
+      },
+      {
+        new: true,
+      }
+    );
+    res.json(post);
+  } catch (error) {
+    res.json(error);
+  }
+});
+
+//--------------Delete post --------------------------------//
+const deletePostCtrl =expressAsyncHandler(async (req,res)=>{
+  const {id} = req.params;
+  validateMongodbId(id);
+  try{
+  const post =await Post.findOneAndDelete(id);
+  res.json(post);
+  }catch(error){
+    res.json(error)
+  }
+  res.json("Delete")
+
+})
+//--------------Like post --------------------------------//
+const toggleAddLikeToPost =expressAsyncHandler(async (req,res)=>{
+ //find the post to be liked
+ const {postId}= req.body;
+ const post =await Post.findById(postId);
+ res.json(post);
+})
+
+
+module.exports = {
+  createPostCtrl,
+  fetchPostsCtrl,
+  fetchPostCtrl,
+  updatePostCtrl,
+  deletePostCtrl,
+  toggleAddLikeToPost
+};

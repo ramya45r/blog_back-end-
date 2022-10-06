@@ -101,11 +101,11 @@ const userSchema = new mongoose.Schema(
   }
 ); 
 //Virtual method to populate created post
-userSchema.virtual('posts'),{
+userSchema.virtual('posts',{
   ref:'Post',
-  foriegnField: 'user',
+  foreignField: 'user',
   localField:'_id',
-}
+})
 
 //Hash password
 

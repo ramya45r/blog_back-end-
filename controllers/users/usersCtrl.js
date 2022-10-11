@@ -75,6 +75,7 @@ const deleteUsersCtrl = expressAsyncHandler(async (req, res) => {
 //=========================User Details ===========================================//
 const fetchUserDetailsCtrl = expressAsyncHandler(async (req, res) => {
   const { id } = req.params;
+  
   validateMongodbId(id);
   try {
     const user = await User.findById(id);
@@ -87,6 +88,7 @@ const fetchUserDetailsCtrl = expressAsyncHandler(async (req, res) => {
 //=========================User Profile ============================================//
 const userProfileCtrl = expressAsyncHandler(async (req, res, next) => {
   const { id } = req.params;
+  console.log( req.params);
   validateMongodbId(id);
   try {
     const myProfile = await User.findById(id).populate('posts')
@@ -224,25 +226,26 @@ const unBlockUserCtrl = expressAsyncHandler(async (req, res) => {
 });
 //=========================Profile photo upload===========================================//
 
-const profilePhotoUploadCtrl = expressAsyncHandler(async (req, res) => {
-  //find loginuser
-  const { _id } = req.user;
+const  profilePhotoUploadCtrl = expressAsyncHandler(async(req,res)=>{
+  // find the login user
+  // console.log(req.user);
 
-  //1. get the oath to img
-  const localPath = `public/images/profile/${req.file.filename}`;
-  //upload to cloudinary
+  const {_id}= req?.user;
+
+  //get the path to the image
+  const localPath = `public/images/profile/${req.file.filename}` ;
+  // upload to cloudinary
   const imgUploaded = await cloudinaryUploadImg(localPath);
-  const foundUser = await User.findByIdAndUpdate(
-    _id,
-    {
-      profilePhoto: imgUploaded?.url,
-    },
-    { new: true }
-  );
-  //remove the saved user
-  fs.unlinkSync(localPath);
+  // console.log(imgUploaded);
+  const foundUser = await User.findByIdAndUpdate(_id,{
+    profilePhoto: imgUploaded?.url,
+  },{new:true})
+
+  //remove the saved image
+  fs.unlinkSync(localPath)
+  // res.json(foundUser);
   res.json(imgUploaded);
-});
+})
 module.exports = {
   userRegisterCtrl,
   loginUserCtl,

@@ -7,9 +7,12 @@ const User = require("../../models/user/User");
 const cloudinaryUploadImg = require("../../utils/cloudinary");
 
 // create Post----------------------
-const createPostCtrl = expressAsyncHandler(async (req, res) => {
-  console.log(req.file);
+//------------------create post---------------
+
+const createPostController= expressAsyncHandler(async (req,res)=>{
+  console.log(req.file)
   const { _id } = req.user;
+ blockUser(req.user);
   // validateMongodbId(req.body.user);
   //Check for bad words
   const filter = new Filter();
@@ -24,25 +27,49 @@ const createPostCtrl = expressAsyncHandler(async (req, res) => {
     );
   }
 
-  //1. get the oath to img
-  // const localPath = `public/images/posts/${req.file.filename}`;
-  //upload to cloudinary
-  //const imgUploaded = await cloudinaryUploadImg(localPath);
+   //prevent user if his account is a starter account
+ if (
+   req?.user?.accountType === "Starter Account" &&
+   req?.user?.postCount >= 2
+ ) {
+   throw new Error("Starter Account can only create two posts,Get more Followers");
+ }
 
-  // console.log(req.file);
-  try {
-    const post = await Post.create({
+    //get the path to the image
+const localPath = `public/images/posts/${req.file.filename}` ;
+// upload to cloudinary
+const imgUploaded = await cloudinaryUploadImg(localPath);
+
+   try {
+   const post = await Post.create({
       ...req.body,
-    
-      user: _id,
-    });
+      image:imgUploaded?.url,
+      user:_id,
+
+  });
     res.json(post);
-    //Remove uploaded img
-   // fs.unlinkSync(localPath);
+  // res.json(imgUploaded);
+
+
+  
+  //update the user post count
+  await User.findByIdAndUpdate(
+    _id,
+    {
+      $inc: { postCount: 1 },
+    },
+    {
+      new: true,
+    }
+  );
+ 
+    //remove uploaded images
+  fs.unlinkSync(localPath)
+
   } catch (error) {
     res.json(error);
   }
-});
+})
 
 //--------------Fetch all posts --------------------------------//
 const fetchPostsCtrl = expressAsyncHandler(async (req, res) => {

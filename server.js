@@ -17,13 +17,14 @@ const app =express()
 app.use(express.json());
 //cors
 app.use(cors())
+
 app.use("/api/users",userRoutes);
 //Post userRoutes
 app.use("/api/posts",postRoute);
 // category Route
 app.use("/api/category",categoryRoute);
 
-app.use("/api/users",userRoutes);
+// app.use("/api/users",userRoutes);
 //error handler
 app.use(notFound )
 app.use(errorHandler);

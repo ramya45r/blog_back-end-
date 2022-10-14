@@ -11,6 +11,8 @@ const connectDB =require("./config/db/dbConnect");
 const postRoute = require("./route/posts/postRoute");
 const categoryRoute = require("./route/category/categoryRoute");
 
+const commentRoutes = require("./route/comments/commentRoute");
+
 const app =express()
 
 //middleware
@@ -24,6 +26,8 @@ app.use("/api/posts",postRoute);
 // category Route
 app.use("/api/category",categoryRoute);
 
+//commentRoute
+app.use("/api/comments",commentRoutes)
 // app.use("/api/users",userRoutes);
 //error handler
 app.use(notFound )

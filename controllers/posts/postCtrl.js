@@ -4,6 +4,7 @@ const fs = require("fs");
 const Post = require("../../models/post/Post");
 const validateMongodbId = require("../../utils/validateMongodb");
 const User = require("../../models/user/User");
+const SavedPost = require("../../models/savedPosts/SavedPosts");
 const cloudinaryUploadImg = require("../../utils/cloudinary");
 
 // create Post----------------------
@@ -50,10 +51,10 @@ const fetchPostsCtrl = expressAsyncHandler(async (req, res) => {
   try {
     //check if it has a category
     if(hasCategory){
-      const posts = await Post.find({category:hasCategory}).populate("user");
+      const posts = await Post.find({category:hasCategory}).populate("user").populate('comments').sort('-createdAt');
       res.json(posts)
     }else{
-      const posts = await Post.find({}).populate("user");
+      const posts = await Post.find({}).populate("user").populate("user").populate('comments').sort("-createdAt");
     res.json(posts);
     }
     
@@ -66,7 +67,7 @@ const fetchPostCtrl = expressAsyncHandler(async (req, res) => {
   const { id } = req.params;
   validateMongodbId(id);
   try {
-    const post = await Post.findById(id).populate("user");
+    const post = await Post.findById(id).populate("user").populate('comments');
     //update number of views
     await Post.findByIdAndUpdate(
       id,
@@ -81,6 +82,22 @@ const fetchPostCtrl = expressAsyncHandler(async (req, res) => {
   }
 });
 
+//----------search post-------------------------------------//
+const searchPostController = expressAsyncHandler(async (req, res) => {
+  const query = req.query.q
+  try {
+    const posts = await Post.find({
+      $or: [
+        { title: { $regex: new RegExp("^" + query + ".*", "i") } },
+        { description: { $regex: new RegExp("^" + query + ".*", "i") } },
+        { category: { $regex: new RegExp("^" + query + ".*", "i") } },
+      ],
+    })
+    res.status(200).json(posts)
+  } catch (error) {
+    throw new Error(error.message)
+  }
+})
 //--------------Update post --------------------------------//
 const updatePostCtrl = expressAsyncHandler(async (req, res) => {
   console.log(req.user);
@@ -214,6 +231,112 @@ const toggleAddDislikeToPostCtrl = expressAsyncHandler(async (req, res) => {
 });
 
 
+// //-------------report a post---------------
+const reportPostController = expressAsyncHandler(async(req,res) =>{
+  //find the post to report
+  const { postId } = req.body;
+  const post = await Post.findById(postId);
+
+
+   //find the login user
+   const loginUserId = req?.user?._id;
+   const reportUserId = post?.reports?.includes(loginUserId)
+     //find the user has reported this post ?
+    const isReported = post?.isReported;
+    if (!isReported || !reportUserId ) {
+      const post = await Post.findByIdAndUpdate(
+        postId,
+        {
+          $push: { reports: loginUserId },
+          isReported: true,
+        },
+        { new: true }
+      );
+      res.json(post);
+    }else{
+      res.json(post)
+    }
+
+ })
+  //--------fetch reported posts---------------
+const fetchReportedPostController = expressAsyncHandler(async (req, res) => {
+  try {
+    const posts = await Post.find({isReported:true }).populate('user');
+    res.json(posts);
+  } catch (error) {
+    throw new Error(error.message);
+  }
+});
+
+
+// -------------------save posts------------------------
+const savePostController = expressAsyncHandler(async (req, res) => {
+  const { id } = req.body;
+  const userId = req?.user?.id;
+  console.log(id, userId, "gfhjkl;");
+  try {
+    const savedPosts = await SavedPost.findOne({ user: userId });
+    if (savedPosts) {
+      const isExist = savedPosts.post.includes(id);
+      if (isExist) {
+        const newSavedPosts = await SavedPost.findOneAndUpdate(
+          { user: userId },
+          { $pull: { post: id } },
+          { new: true }
+        );
+        res.json(newSavedPosts);
+      } else {
+        const newSavedPosts = await SavedPost.findOneAndUpdate(
+          {user: userId },
+          { $push: { post: id } },
+          { new: true }
+        );
+        res.json(newSavedPosts);
+      }
+    } else {
+      const newSavedPosts = await SavedPost.create({
+       user: userId ,
+        post: id,
+
+      });
+      res.json(newSavedPosts);
+    }
+  } catch (error) {
+    throw new Error(error.message);
+  }
+});
+
+//--------fetch saved posts---------------
+const fetchSavedPostController = expressAsyncHandler(async (req, res) => {
+  try {
+    // const posts = await SavedPost.find({ user: req.user.id }, { post: 1 });
+    const posts = await SavedPost.find({ user: req.user.id }).populate("post");
+    res.json(posts);
+  } catch (error) {
+    throw new Error(error.message);
+  }
+});
+
+//------------------delete saved post---------------
+
+const deleteSavedPostController = expressAsyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+  try {
+    const posts = await SavedPost.findOneAndUpdate(
+      { user: userId },
+      {
+        $pull: { post: id },
+      },
+      { new: true }
+    );
+    res.json(posts);
+  } catch (error) {
+    throw new Error(error.message);
+  }
+});
+
+
 module.exports = {
   createPostCtrl,
   fetchPostsCtrl,
@@ -221,6 +344,8 @@ module.exports = {
   updatePostCtrl,
   deletePostCtrl,
   toggleAddLikeToPostCtrl,
-  toggleAddDislikeToPostCtrl
+  toggleAddDislikeToPostCtrl,
+  searchPostController,reportPostController,fetchReportedPostController,
+  deleteSavedPostController,fetchSavedPostController,savePostController
   
 };

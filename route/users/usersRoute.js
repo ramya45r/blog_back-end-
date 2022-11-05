@@ -25,7 +25,7 @@ userRoutes.post("/register", userRegisterCtrl);
 userRoutes.post("/login", loginUserCtl);
 userRoutes.get("/", fetchUsersCtrl);
 userRoutes.get("/profile/:id", authMiddleware, userProfileCtrl);
-userRoutes.put("/profile/:id", authMiddleware, updateUserCtrl);
+userRoutes.put("/", authMiddleware, updateUserCtrl);
 
 //=======================Follow & Unfollow users==========================================//
 userRoutes.put("/follow", authMiddleware, followingUserCtrl);

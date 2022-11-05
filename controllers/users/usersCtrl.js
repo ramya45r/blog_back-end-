@@ -50,9 +50,9 @@ const loginUserCtl = expressAsyncHandler(async (req, res) => {
 
 //=========================Get all users ===========================================//
 const fetchUsersCtrl = expressAsyncHandler(async (req, res) => {
-  console.log(req.headers);
+  console.log(1234567898765);
   try {
-    const users = await User.find({});
+    const users = await User.find({}).populate('posts');
     res.json(users);
   } catch (error) {
     res.json(error);
@@ -86,13 +86,31 @@ const fetchUserDetailsCtrl = expressAsyncHandler(async (req, res) => {
 });
 
 //=========================User Profile ============================================//
-const userProfileCtrl = expressAsyncHandler(async (req, res, next) => {
+const userProfileCtrl = expressAsyncHandler(async (req, res) => {
   const { id } = req.params;
-  console.log( req.params);
   validateMongodbId(id);
+  //1.find the login user
+  //2.check this particular user if the login user exists in the array of viewedby
+  //get the login user
+  const loginUserId = req?.user?._id?.toString();
+  console.log(loginUserId);
   try {
-    const myProfile = await User.findById(id).populate('posts')
-    res.json(myProfile);
+    const myProfile = await User.findById(id)
+      .populate("posts")
+      .populate("viewedBy")
+      .populate("followers")
+      .populate("following");
+    const alreadyViewed = myProfile?.viewedBy?.find((user) => {
+      return user?._id?.toString() === loginUserId;
+    });
+    if (alreadyViewed) {
+      res.json(myProfile);
+    } else {
+      const profile = await User.findByIdAndUpdate(myProfile?._id, {
+        $push: { viewedBy: loginUserId },
+      });
+      res.json(profile);
+    }
   } catch (error) {
     res.json(error);
   }
@@ -102,6 +120,8 @@ const userProfileCtrl = expressAsyncHandler(async (req, res, next) => {
 
 const updateUserCtrl = expressAsyncHandler(async (req, res, next) => {
   const { _id } = req?.user;
+  // //block user
+  // blockUser(req?.user);
   validateMongodbId(_id);
   const user = await User.findByIdAndUpdate(
     _id,
@@ -231,6 +251,8 @@ const  profilePhotoUploadCtrl = expressAsyncHandler(async(req,res)=>{
   // console.log(req.user);
 
   const {_id}= req?.user;
+  //block user
+  // blockUser(req?.user)
 
   //get the path to the image
   const localPath = `public/images/profile/${req.file.filename}` ;

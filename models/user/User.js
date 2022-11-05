@@ -99,6 +99,12 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 ); 
+//Account Type
+userSchema.virtual('accountType').get(function(){
+  const totalFollowers=this.followers?.length;
+  return totalFollowers >=1 ? 'Pro Account' : 'Starter Account';
+})
+
 //Virtual method to populate created post
 userSchema.virtual('posts',{
   ref:'Post',
@@ -112,6 +118,8 @@ userSchema.pre("save", async function (next) {
   if(!this.isModified('password')){
     next()
   }
+
+
   //hash password
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);

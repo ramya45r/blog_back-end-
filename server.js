@@ -12,6 +12,8 @@ const postRoute = require("./route/posts/postRoute");
 const categoryRoute = require("./route/category/categoryRoute");
 
 const commentRoutes = require("./route/comments/commentRoute");
+const conversationRoutes = require("./route/conversation/conversationRoute");
+const messageRoutes = require("./route/messages/messages");
 
 const app =express()
 
@@ -28,7 +30,12 @@ app.use("/api/category",categoryRoute);
 
 //commentRoute
 app.use("/api/comments",commentRoutes)
-// app.use("/api/users",userRoutes);
+//conversationRoute
+app.use("/api/conversation",conversationRoutes)
+
+//messageRoute
+app.use("/api/message",messageRoutes);
+
 //error handler
 app.use(notFound )
 app.use(errorHandler);

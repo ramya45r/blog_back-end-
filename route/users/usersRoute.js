@@ -13,11 +13,12 @@ const {
   blockUserCtrl,
   unBlockUserCtrl,
   profilePhotoUploadCtrl,
+  allUsersSearch,   coverPhotoUploadController
   
 } = require("../../controllers/users/usersCtrl");
 const authMiddleware = require("../../middlewares/auth/authMiddleware");
 const {
-  PhotoUpload,profilePhotoResize
+  PhotoUpload,profilePhotoResize, coverPhotoResize
 } = require("../../middlewares/upload/profilePhotoUpload");
 
 const userRoutes = express.Router();
@@ -43,9 +44,9 @@ userRoutes.put(
   profilePhotoResize,
   profilePhotoUploadCtrl
 );
-
+userRoutes.put("/coverphoto-upload",authMiddleware,PhotoUpload.single("image"),coverPhotoResize, coverPhotoUploadController );
 userRoutes.put("/password", authMiddleware, updateUserPasswordCtrl);
 userRoutes.delete("/:id", deleteUsersCtrl);
 userRoutes.get("/:id", fetchUserDetailsCtrl);
-
+userRoutes.get("/chatUser/search",authMiddleware,allUsersSearch );
 module.exports = userRoutes;

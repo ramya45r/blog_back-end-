@@ -1,8 +1,12 @@
 const mongoose=require('mongoose')
-mongoose.connect(process.env.MONGODB_URL,{
-    useNewUrlParser:true
-}).then(()=>{
-console.log("db connected")
-}).catch((err)=>{
-    console.log("not connected")
-})
+mongoose.connect(process.env.MONGO_URL);
+
+const connection = mongoose.connection;
+
+connection.on("connected", () => {
+  console.log("MongoDB connection is successful");
+});
+
+connection.on("error", (error) => {
+  console.log("Error in MongoDB connection", error);
+});

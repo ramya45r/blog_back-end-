@@ -268,6 +268,50 @@ const  profilePhotoUploadCtrl = expressAsyncHandler(async(req,res)=>{
   // res.json(foundUser);
   res.json(imgUploaded);
 })
+//search
+const allUsersSearch =expressAsyncHandler(async(req,res) =>{
+  console.log(req.user._id);
+  console.log(req.query.search);
+  const keyword=req.query.search? {
+    $or:[
+      {firstName:{$regex:req.query.search,$options:"i"}},
+      {email:{$regex:req.query.search,$options:"i"}}
+    ],
+  }
+  :{};
+  console.log(keyword);
+  const users=await User.find(keyword)
+  .find({_id:{$ne:req.user._id}})
+  res.send(users)
+  console.log(users);
+})
+
+//----------cover photo upload----------
+
+const coverPhotoUploadController = expressAsyncHandler(async (req, res) => {
+  // find the login user
+  // console.log(req.user);
+
+  const { _id } = req?.user;
+
+  //get the path to the image
+  const localPath = `public/images/profile/${req.file.filename}`;
+  // upload to cloudinary
+  const imgUploaded = await cloudinaryUploadImg(localPath);
+  // console.log(imgUploaded);
+  const foundUser = await User.findByIdAndUpdate(
+    _id,
+    {
+      coverPhoto: imgUploaded?.url,
+    },
+    { new: true }
+  );
+
+  //remove the saved image
+  fs.unlinkSync(localPath);
+  // res.json(foundUser);
+  res.json(imgUploaded);
+});
 module.exports = {
   userRegisterCtrl,
   loginUserCtl,
@@ -282,4 +326,5 @@ module.exports = {
   blockUserCtrl,
   unBlockUserCtrl,
   profilePhotoUploadCtrl,
+  allUsersSearch,coverPhotoUploadController 
 };

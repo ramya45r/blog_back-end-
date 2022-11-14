@@ -60,6 +60,18 @@ const postImgResize = async (req, res, next) => {
 };
 
 
+//cover Image Resizing
+const coverPhotoResize = async (req, res, next) => {
+  //check if there is no file
+  if (!req.file) return next();
+  req.file.filename = `user-${Date.now()}-${req.file.originalname}`;
 
+  await sharp(req.file.buffer)
+    .resize(1000, 300)
+    .toFormat("jpeg")
+    .jpeg({ quality: 90 })
+    .toFile(path.join(`public/images/profile/${req.file.filename}`));
+  next();
+};
 
-module.exports ={PhotoUpload,profilePhotoResize,postImgResize}
+module.exports ={PhotoUpload,profilePhotoResize,postImgResize,coverPhotoResize}
